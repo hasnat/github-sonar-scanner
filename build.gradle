@@ -1,0 +1,30 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'net.idlestate:gradle-download-dependencies-plugin:1.+'
+    }
+}
+
+apply plugin: 'net.idlestate.download-dependencies'
+apply plugin: 'java'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.nanohttpd:nanohttpd:2.3.1'
+    compile 'com.jayway.jsonpath:json-path:2.4.0'
+    compile 'com.jcabi:jcabi-log:0.18'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.listener.App'
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
