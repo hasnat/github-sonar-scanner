@@ -21,9 +21,10 @@ RUN gradle build --no-daemon --console plain
 
 FROM openjdk:8-jdk-alpine
 
+ARG HTTP_PORT=8080
 ENV SONAR_SCANNER_HOME /usr/src/sonar-scanner
 ENV PATH /usr/src/sonar-scanner:${PATH}
-ENV HTTP_PORT 8080
+ENV HTTP_PORT ${HTTP_PORT}
 ENV REPOS_PATH /tmp/temp_git_repos/
 RUN apk add --update --no-cache git
 
@@ -48,6 +49,6 @@ java \
 > /usr/src/sonar-scanner/sonar-scanner
 
 RUN chmod +x /usr/src/sonar-scanner/sonar-scanner
-
+EXPOSE ${HTTP_PORT}
 
 CMD ["java","-jar","myapp.jar"]
