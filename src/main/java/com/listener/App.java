@@ -2,6 +2,7 @@ package com.listener;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -23,6 +24,8 @@ public class App extends NanoHTTPD {
     static String GITLAB_TOKEN = Optional.ofNullable(System.getenv("GITLAB_TOKEN")).orElse("");
     static String SONAR_URL = Optional.ofNullable(System.getenv("SONAR_URL")).orElse("");
     static String SONAR_TOKEN = Optional.ofNullable(System.getenv("SONAR_TOKEN")).orElse("");
+    static String ANALYZE_TARGET = Optional.ofNullable(System.getenv("ANALYZE_TARGET")).orElse("");
+    static String RUN_ONLY_ON_EVENTS = Optional.ofNullable(System.getenv("RUN_ONLY_ON_EVENTS")).orElse("");
 
     public App() throws IOException, NumberFormatException {
         super(Integer.parseInt(HTTP_PORT));
@@ -62,9 +65,11 @@ public class App extends NanoHTTPD {
     private void runSonarAnalysis(String postData) {
 
         String gitRepoName = "";
-        String headCommit = "";
         String gitRepoUrl = "";
+        String headCommit = "";
         String gitBranchName = "";
+        String gitBaseBranchName = "";
+        String requestEvent = "";
         int gitProjectId = 0;
         int pullRequest = 0;
         boolean isGithub = false;
@@ -73,9 +78,11 @@ public class App extends NanoHTTPD {
             // github
             DocumentContext jsonContext = JsonPath.parse(postData);
 
-            headCommit = jsonContext.read("$['pull_request']['head']['sha']");
             gitRepoName = jsonContext.read("$['pull_request']['head']['repo']['full_name']");
             gitBranchName = jsonContext.read("$['pull_request']['head']['ref']");
+            headCommit = jsonContext.read("$['pull_request']['head']['sha']");
+            gitBaseBranchName = jsonContext.read("$['pull_request']['base']['ref']");
+            requestEvent = jsonContext.read("$['action']");
             pullRequest = jsonContext.read("$['pull_request']['number']");
             gitRepoUrl = jsonContext.read("$['pull_request']['head']['repo']['clone_url']");
             gitRepoUrl = gitRepoUrl.replace("://", "://" + GITHUB_TOKEN + "@");
@@ -91,6 +98,8 @@ public class App extends NanoHTTPD {
 
                 gitBranchName = jsonContext.read("$['object_attributes']['source_branch']");
                 headCommit = jsonContext.read("$['object_attributes']['last_commit']['id']");
+                gitBaseBranchName = jsonContext.read("$['object_attributes']['target_branch']");
+                requestEvent = jsonContext.read("$['object_attributes']['action']");
                 gitRepoName = jsonContext.read("$['object_attributes']['source']['path_with_namespace']");
                 gitProjectId = jsonContext.read("$['project']['id']");
                 gitRepoUrl = jsonContext.read("$['object_attributes']['source']['git_http_url']");
@@ -100,35 +109,67 @@ public class App extends NanoHTTPD {
                 System.out.println("Path not found ( not a gitlab pull request )");
             }
         }
+
         if (!isGithub && !isGitlab) {
             System.out.println("Skip sonar scan trigger");
             return;
         }
+        if (!shouldRunOnThisEvent(requestEvent)) {
+            System.out.println("Skipping this request, as its `" + requestEvent + "` only allowed to run `RUN_ONLY_ON_EVENTS` -- " + RUN_ONLY_ON_EVENTS);
+            return;
+        }
+        if (shouldRunSourceScan(gitBaseBranchName)) {
+            System.out.println("Analyzing Source branch");
+            runScanner(gitRepoName, "", gitBaseBranchName, gitRepoUrl, 0, gitProjectId, isGithub, "publish");
+        }
+        System.out.println("Analyzing pull/merge request");
+        runScanner(gitRepoName, headCommit, gitBranchName, gitRepoUrl, pullRequest, gitProjectId, isGithub, "preview");
+
+    }
+
+    private boolean shouldRunOnThisEvent(String eventName) {
+        if (RUN_ONLY_ON_EVENTS.equals("")) {
+            return true;
+        }
+        return Arrays.asList(RUN_ONLY_ON_EVENTS.split(",")).contains(eventName);
+    }
+
+    private boolean shouldRunSourceScan(String sourceBranchName) {
+        if (ANALYZE_TARGET.equals("")) {
+            return true;
+        }
+        return Arrays.asList(ANALYZE_TARGET.split(",")).contains(sourceBranchName);
+    }
+
+    private void runScanner(String gitRepoName, String headCommit, String gitBranchName, String gitRepoUrl, int pullRequest, int gitProjectId, boolean isGithub, String mode) {
         String localPath = REPOS_PATH + gitRepoName + "/" + headCommit;
 
         try {
             runCommand("mkdir -p " + localPath);
             runCommand("git clone --depth 1 -b " + gitBranchName + " --single-branch " + gitRepoUrl + " .", localPath);
-            String scannerCommand = "/usr/src/sonar-scanner/sonar-scanner -Dproject.home=.";
+            String scannerCommand = "/usr/src/sonar-scanner/sonar-scanner " +
+                    " -Dproject.home=." +
+                    " -Dsonar.analysis.mode=" + mode +
+                    " -Dsonar.host.url=" + SONAR_URL +
+                    " -Dsonar.issuesReport.console.enable=true" +
+                    " -Dsonar.login=" + SONAR_TOKEN;
 
-            if (isGithub) {
-                scannerCommand = scannerCommand +
-                        " -Dsonar.github.pullRequest=" + pullRequest +
-                        " -Dsonar.github.repository=" + gitRepoName +
-                        " -Dsonar.github.oauth=" + GITHUB_TOKEN;
-            } else {
-                scannerCommand = scannerCommand +
-                        " -Dsonar.gitlab.failure_notification_mode=commit-status" +
-                        " -Dsonar.gitlab.json_mode=CODECLIMATE" +
-                        " -Dsonar.gitlab.commit_sha=" + headCommit +
-                        " -Dsonar.gitlab.project_id=" + gitProjectId +
-                        " -Dsonar.gitlab.ref_name=" + gitBranchName +
-                        (GITLAB_TOKEN.equals("") ? "" : " -Dsonar.gitlab.user_token=" + GITLAB_TOKEN) +
-                        (GITLAB_URL.equals("") ? "" : " -Dsonar.gitlab.url=" + GITLAB_URL) +
-                        " -Dsonar.host.url=" + SONAR_URL +
-                        " -Dsonar.verbose=true" +
-                        " -Dsonar.issuesReport.console.enable=true" +
-                        " -Dsonar.login=" + SONAR_TOKEN;
+            if (mode.equals("preview")) {
+                if (isGithub) {
+                    scannerCommand = scannerCommand +
+                            " -Dsonar.github.pullRequest=" + pullRequest +
+                            " -Dsonar.github.repository=" + gitRepoName +
+                            " -Dsonar.github.oauth=" + GITHUB_TOKEN;
+                } else {
+                    scannerCommand = scannerCommand +
+                            " -Dsonar.gitlab.failure_notification_mode=commit-status" +
+                            " -Dsonar.gitlab.json_mode=CODECLIMATE" +
+                            (headCommit.equals("") ? "" : " -Dsonar.gitlab.commit_sha=" + headCommit) +
+                            " -Dsonar.gitlab.project_id=" + gitProjectId +
+                            " -Dsonar.gitlab.ref_name=" + gitBranchName +
+                            (GITLAB_TOKEN.equals("") ? "" : " -Dsonar.gitlab.user_token=" + GITLAB_TOKEN) +
+                            (GITLAB_URL.equals("") ? "" : " -Dsonar.gitlab.url=" + GITLAB_URL);
+                }
             }
             runCommand(scannerCommand, localPath);
             if (!localPath.equals("/")) {

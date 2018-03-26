@@ -40,7 +40,6 @@ java \
  org.sonarsource.scanner.cli.Main \
  -Djava.awt.headless=true \
  -Dscanner.home=$SONAR_SCANNER_HOME \
- -Dsonar.analysis.mode=preview \
  -Dsonar.host.url=$SONAR_URL \
  -Dsonar.verbose=true \
  -Dsonar.issuesReport.console.enable=true \
