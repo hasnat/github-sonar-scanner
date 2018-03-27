@@ -14,8 +14,8 @@ docker run -it -d \
     -e GITHUB_TOKEN=YYYYY \
     -e GITLAB_TOKEN=YYYY \
     -e GITLAB_URL=https://gitlab.website \
-    -e ANALYZE_TARGET=master \
-    -e RUN_ONLY_ON_EVENTS=open,reopen,update,opened,reopened,synchronized \
+    -e ANALYZE_TARGET=master,develop \
+    -e RUN_ONLY_ON_EVENTS=open,reopen,update,opened,reopened,synchronize \
     -e 'SONAR_SCANNER_DEBUG_OPTS=-Dsonar.verbose=true' \
     hasnat/trigger-sonar-scanner
 
@@ -47,13 +47,13 @@ If no gitlab or github tokens provided or set in sonar
 
 ### Development
 
-Clone this repo and
+Clone this repo
 #### Run local Sonar
 ```
 docker run -d --name sonarqube -p 9000:9000 -p 9092:9092 sonarqube
 ```
 
-#### Run local Sonar Trigger API
+#### Build and run local Sonar trigger API
 ```
 docker build -t trigger-sonar-scanner-api .
 
@@ -66,8 +66,8 @@ docker run -it --rm \
     -e SONAR_URL=http://docker.for.mac.localhost:9000 \
     -e GITLAB_TOKEN=YYYY \
     -e GITHUB_TOKEN=YYYYY \
-    -e ANALYZE_TARGET=master \
-    -e RUN_ONLY_ON_EVENTS=open,reopen,update,opened,reopened,synchronized \
+    -e ANALYZE_TARGET=master,develop \
+    -e RUN_ONLY_ON_EVENTS=open,reopen,update,opened,reopened,synchronize \
     -e 'SONAR_SCANNER_DEBUG_OPTS=-Dsonar.verbose=true' \
     trigger-sonar-scanner-api
 
