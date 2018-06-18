@@ -48,6 +48,9 @@ java \
 > /usr/src/sonar-scanner/sonar-scanner
 
 RUN chmod +x /usr/src/sonar-scanner/sonar-scanner
+# a convenient empty direcotry to point for sonar.java.binaries 
+# if trying to run sonar without java binaries pointing to empty directory would do
+RUN mkdir -p /tmp/empty.sonar.java.binaries
 EXPOSE ${HTTP_PORT}
 
 CMD ["java","-jar","myapp.jar"]
