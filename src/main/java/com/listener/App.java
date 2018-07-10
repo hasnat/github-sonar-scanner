@@ -2,10 +2,14 @@ package com.listener;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 
+import com.goebl.david.Webb;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -177,11 +181,47 @@ public class App extends NanoHTTPD {
             }
             System.out.println("Done, bring me another!");
         } catch (IOException | InterruptedException e) {
+            if (isGithub) {
+                updateGithubStatus(gitRepoName, headCommit);
+            } else {
+                updateGitlabStatus(gitProjectId, headCommit);
+            }
             System.out.println("Exception happened - here's what I know: " + e);
             e.printStackTrace();
         }
     }
+    private void updateGithubStatus(String gitRepoName, String headCommit) {
+        try {
+            URL url = new URL("https://api.github.com/repos/" + gitRepoName + "/statuses/" + headCommit);
+            URLConnection con = url.openConnection();
 
+            HttpURLConnection http = (HttpURLConnection) con;
+            http.setRequestMethod("POST");
+            http.setDoOutput(true);
+            byte[] out = ("{\"state\":\"error\",\"context\":\"sonarqube\", \"description\":\"Error executing sonar scanner, check sonarqube-scanner logs on build.\"}")
+                    .getBytes(StandardCharsets.UTF_8);
+            int length = out.length;
+
+            http.setFixedLengthStreamingMode(length);
+            http.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            http.connect();
+            OutputStream os = http.getOutputStream();
+            os.write(out);
+        } catch (IOException e1) {
+            System.out.println("Error updating status on github: " + e1);
+            e1.printStackTrace();
+        }
+    }
+    private void updateGitlabStatus(int gitProjectId, String headCommit) {
+        Webb webb = Webb.create();
+        webb.post(GITLAB_URL + "/api/v4/projects/" + gitProjectId + "/statuses/" + headCommit)
+                .param("state", "failed")
+                .param("context", "sonarqube")
+                .param("description", "Error executing sonar scanner, check sonarqube-scanner logs on build.")
+                .ensureSuccess()
+                .asVoid();
+    }
     private void runCommand(String command) throws IOException, InterruptedException {
         runCommand(command, "");
     }
