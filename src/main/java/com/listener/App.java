@@ -162,7 +162,8 @@ public class App extends NanoHTTPD {
             File f = new File(localPath + '/' + "sonar-project.properties");
             if(!f.exists() && !f.isDirectory()) {
                 scannerCommand = scannerCommand +
-                        " -Dsonar.projectKey=" + gitRepoName.replace('/',':');
+                        " -Dsonar.projectKey=" + gitRepoName.replace('/',':') +
+                        " -Dsonar.sources=.";
             }
             if (mode.equals("preview")) {
                 if (isGithub) {
