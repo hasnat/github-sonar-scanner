@@ -93,6 +93,7 @@ public class App extends NanoHTTPD {
             isGithub = true;
         } catch (PathNotFoundException e) {
             System.out.println("Path not found ( not a github pull request )");
+            System.out.println(e.getMessage());
         }
 
         if (!isGithub) {
@@ -111,6 +112,7 @@ public class App extends NanoHTTPD {
                 isGitlab = true;
             } catch (PathNotFoundException e) {
                 System.out.println("Path not found ( not a gitlab pull request )");
+                System.out.println(e.getMessage());
             }
         }
 
@@ -157,7 +159,11 @@ public class App extends NanoHTTPD {
                     " -Dsonar.host.url=" + SONAR_URL +
                     " -Dsonar.issuesReport.console.enable=true" +
                     " -Dsonar.login=" + SONAR_TOKEN;
-
+            File f = new File(localPath + '/' + "sonar-project.properties");
+            if(!f.exists() && !f.isDirectory()) {
+                scannerCommand = scannerCommand +
+                        " -Dsonar.projectKey=" + gitRepoName.replace('/',':');
+            }
             if (mode.equals("preview")) {
                 if (isGithub) {
                     scannerCommand = scannerCommand +
