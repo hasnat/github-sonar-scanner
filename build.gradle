@@ -13,8 +13,9 @@ apply plugin: 'java'
 repositories {
     jcenter()
 }
-
+def sonarScannerVersion = project.hasProperty('sonarScannerVersion') ? ':' + project.getProperty('sonarScannerVersion') : ''
 dependencies {
+    compile "org.sonarsource.scanner.cli:sonar-scanner-cli${sonarScannerVersion}"
     compile 'org.nanohttpd:nanohttpd:2.3.1'
     compile 'com.jayway.jsonpath:json-path:2.4.0'
     compile 'com.jcabi:jcabi-log:0.18'
