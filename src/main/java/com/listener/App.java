@@ -104,7 +104,7 @@ public class App extends NanoHTTPD {
                 gitBranchName = jsonContext.read("$['object_attributes']['source_branch']");
                 headCommit = jsonContext.read("$['object_attributes']['last_commit']['id']");
                 gitBaseBranchName = jsonContext.read("$['object_attributes']['target_branch']");
-                requestEvent = jsonContext.read("$['object_attributes']['action']");
+                requestEvent = jsonContext.read("$['event_type']");
                 gitRepoName = jsonContext.read("$['object_attributes']['source']['path_with_namespace']");
                 gitProjectId = jsonContext.read("$['project']['id']");
                 gitRepoUrl = jsonContext.read("$['object_attributes']['source']['git_http_url']");
