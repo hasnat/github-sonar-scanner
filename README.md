@@ -42,6 +42,7 @@ Available environment variables
 - `RUN_ONLY_ON_EVENTS`       run only on specific github/gitlab events - default `''` ( run scanner on all events )
 - `SONAR_SCANNER_OPTS`       any sonar options
 - `SONAR_SCANNER_DEBUG_OPTS` any sonar debug options
+- `DEFAULT_SONAR_PROPS`      any sonar props when project is missing sonar properties file (this also adds projectKey=gitRepoName) - default `-Dsonar.sources=. -Dsonar.java.binaries=**/target/classes`
 
 If no gitlab or github tokens provided or set in sonar
 

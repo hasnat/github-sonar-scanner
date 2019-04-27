@@ -30,6 +30,8 @@ public class App extends NanoHTTPD {
     static String SONAR_TOKEN = Optional.ofNullable(System.getenv("SONAR_TOKEN")).orElse("");
     static String ANALYZE_TARGET = Optional.ofNullable(System.getenv("ANALYZE_TARGET")).orElse("");
     static String RUN_ONLY_ON_EVENTS = Optional.ofNullable(System.getenv("RUN_ONLY_ON_EVENTS")).orElse("");
+    static String DEFAULT_SONAR_PROPS = Optional.ofNullable(System.getenv("DEFAULT_SONAR_PROPS"))
+            .orElse(" -Dsonar.sources=. -Dsonar.java.binaries=**/target/classes ");
 
     public App() throws IOException, NumberFormatException {
         super(Integer.parseInt(HTTP_PORT));
@@ -163,7 +165,7 @@ public class App extends NanoHTTPD {
             if(!f.exists() && !f.isDirectory()) {
                 scannerCommand = scannerCommand +
                         " -Dsonar.projectKey=" + gitRepoName.replace('/',':') +
-                        " -Dsonar.sources=.";
+                        DEFAULT_SONAR_PROPS;
             }
             if (mode.equals("preview")) {
                 if (isGithub) {
