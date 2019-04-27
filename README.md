@@ -28,6 +28,14 @@ Features
 - pull requests code review for github
 - requests code review for gitlab
 
+Required Plugins
+----------------
+Depending on your use
+
+Sonar Gitlab Plugin: https://github.com/gabrie-allaigre/sonar-gitlab-plugin
+
+Sonar Github Plugin: http://redirect.sonarsource.com/plugins/github.html
+
 
 Available environment variables
 -------------------------------
