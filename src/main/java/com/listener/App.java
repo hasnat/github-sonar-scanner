@@ -31,7 +31,7 @@ public class App extends NanoHTTPD {
     static String ANALYZE_TARGET = Optional.ofNullable(System.getenv("ANALYZE_TARGET")).orElse("");
     static String RUN_ONLY_ON_EVENTS = Optional.ofNullable(System.getenv("RUN_ONLY_ON_EVENTS")).orElse("");
     static String DEFAULT_SONAR_PROPS = Optional.ofNullable(System.getenv("DEFAULT_SONAR_PROPS"))
-            .orElse(" -Dsonar.sources=. -Dsonar.java.binaries=**/target/classes ");
+            .orElse(" -Dsonar.sources=. -Dsonar.java.binaries=/empty.sonar.java.binaries ");
 
     public App() throws IOException, NumberFormatException {
         super(Integer.parseInt(HTTP_PORT));
